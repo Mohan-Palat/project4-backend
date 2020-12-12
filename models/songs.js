@@ -7,7 +7,8 @@ const songSchema = new mongoose.Schema(
         title: {type: String},
         timestamp:{type: Number},
         createdOn:{type: Date},
-    }
+    },
+    {collection: 'song-test'}
 )
 
 

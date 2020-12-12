@@ -7,60 +7,39 @@ router.use(bodyParser.json());
 //Gets the song list from the API.
 router.get("/", async (req, res) => {
 	await axios
-		.get("https://nowplaying.bbgi.com/WMGQFM/list?limit=10")
+		.get("https://nowplaying.bbgi.com/WMGQFM/list?limit=1000") //Calls API to retrieve song list
 		.then((response) => {
-			saveSongList(response);
-			//res.send(response);
+			saveNewSong(response.data); //Saves songs that are retrieved but not in DB
+			res.send(response.data);
 		})
 		.catch((error) => {
 			console.log("API Error: ", error);
 		});
 });
 
-saveSongList = (data) => {
-	
-	for (let i = 0; i < data.data.length; i++) {
-		console.log("Title: ", data.data[i].title);
-		Song.create(data.data[i]);
-	}
+saveNewSong = (songList) => {
+	songList.forEach((song) => {
+		//Looks at each song retrieved from API
+		Song.findOne(
+			//Looks for existing song in DB based on the ID provided by API
+			{
+				id: song.id,
+			},
+			(err, foundSong) => {
+				if (foundSong) {
+					//If song is found, do nothing and move onto next song
+				} else {
+					const newSong = new Song({
+						id: song.id,
+						title: song.title,
+						artist: song.artist,
+						timestamp: song.timestamp,
+						createdOn: song.createdOn,
+					});
+					Song.create(newSong); //Create a new song but just save only the relevant fields
+				}
+			}
+		);
+	});
 };
-
-//POST ROUTE
-//Converts checked boxes to true/false for documents
-// router.post("/", async (req, res) => {
-// 	if (req.body.isDigital == "on") {
-// 		req.body.isDigital = true;
-// 	} else {
-// 		req.body.isDigital = false;
-// 	}
-// 	if (req.body.currentlyPlaying == "on") {
-// 		req.body.currentlyPlaying = true;
-// 	} else {
-// 		req.body.currentlyPlaying = false;
-// 	}
-// 	if (req.body.hasBeaten == "on") {
-// 		req.body.hasBeaten = true;
-// 	} else {
-// 		req.body.hasBeaten = false;
-// 	}
-// 	if(req.body.replayable == "on") {
-// 		req.body.replayable = true;
-// 	} else {
-// 		req.body.replayable = false;
-// 	}
-// 	let gameCollection = await Game.find({
-// 		name: req.body.name,
-// 		isDigital: req.body.isDigital,
-// 	}); //Checks to see if a document with the same name and digital version exists
-
-// 	if (gameCollection != "") {
-// 		//If there is one
-// 		dupe = true; //Set the dupe flag to true (this presents a message on the new screen)
-// 		res.redirect("/games/new");
-// 	} else {
-// 		let game = await Game.create(req.body); //Creates a new entry in Games document with the game detail
-// 		res.redirect(`/games/${game._id}`); //Redirects to the page of the newly created game
-// 	}
-// });
-
 module.exports = router;

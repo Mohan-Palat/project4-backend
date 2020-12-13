@@ -3,7 +3,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const app = express();
 const db = mongoose.connection;
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8000;
+
 
 const MONGODB_URI =
 	process.env.MONGODB_URL || "mongodb://localhost:27017/" + "project4";
@@ -24,7 +25,7 @@ db.on("open", () => {});
 app.use(express.urlencoded({ extended: true })); // extended: false - does not allow nested objects in query strings
 app.use(express.json()); // returns middleware that only parses JSON - may or may not need it depending on your project
 
-app.use("/songs", require("./controllers/songs_controllers.js"));
+app.use("/", require("./controllers/songs_controllers.js"));
 /*
 app.get("/search", async (req, res) => {
 	let gameResults = await Game.find({

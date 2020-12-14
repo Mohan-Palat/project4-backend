@@ -10,14 +10,15 @@ router.get("/songs", async (req, res) => {
 	}).sort({ createdOn: "descending" });
 });
 
-router.get("/first", async(req,res) =>{
-	
+router.get("/first", async (req, res) => {
 	Song.find({}, (error, allSongs) => {
 		res.json(allSongs);
-	}).sort({"createdOn":-1}).limit(1);
-})
-	
-	router.get("/artist/:order", async (req, res) => {
+	})
+		.sort({ createdOn: -1 })
+		.limit(1);
+});
+
+router.get("/artist/:order", async (req, res) => {
 	let order = req.params.order;
 	if (order == "d") {
 		order = "-1";
@@ -25,7 +26,7 @@ router.get("/first", async(req,res) =>{
 		order = "1";
 	}
 	Song.find({}, (error, allSongs) => {
-		res.send(allSongs);
+		res.json(allSongs);
 	}).sort({ artist: order, title: "1" });
 });
 router.get("/title/:order", async (req, res) => {
@@ -36,7 +37,7 @@ router.get("/title/:order", async (req, res) => {
 		order = "1";
 	}
 	Song.find({}, (error, allSongs) => {
-		res.send(allSongs);
+		res.json(allSongs);
 	}).sort({ title: order, artist: "1" });
 });
 
@@ -100,28 +101,42 @@ addZero = (i) => {
 	} else return i;
 };
 
-search = () =>{
+search = () => {
+	app.get("/search", async (req, res) => {
+		let searchFor = req.params.name;
+		let titleResults = await Song.find({
+			//searches all games
+			title: {
+				$regex: req.query.name, //$regex converts the name field from search box on index.ejs to a string
+				$options: "i", //case-insensitive search option
+			},
+		});
 
+		let consoleResults = await Console.find({
+			//searches all consoles
+			name: { $regex: req.query.name, $options: "i" },
+		});
 
-app.get("/search", async (req, res) => {
-	let searchFor = req.params.name
-	let titleResults = await Song.find({
-		//searches all games
-		title: {
-			$regex: req.query.name, //$regex converts the name field from search box on index.ejs to a string
-			$options: "i", //case-insensitive search option
-		},
+		res.render("search.ejs", {
+			games: gameResults,
+			consoles: consoleResults,
+		});
 	});
+};
 
-	let consoleResults = await Console.find({
-		//searches all consoles
-		name: { $regex: req.query.name, $options: "i" },
-	});
-
-	res.render("search.ejs", {
-		games: gameResults,
-		consoles: consoleResults,
-	});
+router.get("/group", async (req, res) => {
+	Song.aggregate(
+		[
+			{ $match: {} }, 
+			{ $group: { 
+				_id: {title: "$title", artist: "$artist"},
+			count: {$sum: 1} } },
+			{$sort: {count: -1, _id: 1}}
+		],
+		(error, song) => {
+			res.json(song);
+		}
+	);
 });
-}
+
 module.exports = router;

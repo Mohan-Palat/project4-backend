@@ -7,8 +7,14 @@ const songSchema = new mongoose.Schema(
         title: {type: String},
         timestamp:{type: Number},
         createdOn:{type: Date},
+        year: {type: String},
+        month: {type: String},
+        date: {type: String},
+        hours: {type: String},
+        minutes: {type: String},
+        seconds: {type: String},
     },
-    {collection: 'song-test'}
+    {collection: 'songs'}
 )
 
 

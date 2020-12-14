@@ -4,26 +4,40 @@ const axios = require("axios");
 const bodyParser = require("body-parser");
 router.use(bodyParser.json());
 
-router.get("/", async (req, res) => {
+router.get("/songs", async (req, res) => {
 	Song.find({}, (error, allSongs) => {
-		res.send(allSongs);
+		res.json(allSongs);
 	}).sort({ createdOn: "descending" });
-	
 });
-router.get("/artist/:order", async (req, res) => {
+
+router.get("/first", async(req,res) =>{
+	
+	Song.find({}, (error, allSongs) => {
+		res.json(allSongs);
+	}).sort({"createdOn":-1}).limit(1);
+})
+	
+	router.get("/artist/:order", async (req, res) => {
 	let order = req.params.order;
-	if(order=="d"){order="-1"} else{order="1"}
+	if (order == "d") {
+		order = "-1";
+	} else {
+		order = "1";
+	}
 	Song.find({}, (error, allSongs) => {
 		res.send(allSongs);
-	}).sort({ artist: order });
-	
+	}).sort({ artist: order, title: "1" });
 });
 router.get("/title/:order", async (req, res) => {
-	if(order=="d"){order="-1"} else{order="1"}
+	let order = req.params.order;
+	if (order == "d") {
+		order = "-1";
+	} else {
+		order = "1";
+	}
 	Song.find({}, (error, allSongs) => {
 		res.send(allSongs);
-	}).sort({ title: order });
-	
+	}).sort({ title: order, artist: "1" });
 });
 
 //Gets the song list from the API.
@@ -32,7 +46,7 @@ router.get("/refresh", async (req, res) => {
 		.get("https://nowplaying.bbgi.com/WMGQFM/list?limit=1000") //Calls API to retrieve song list
 		.then((response) => {
 			saveNewSong(response.data); //Saves songs that are retrieved but not in DB
-			res.redirect("/");
+			res.redirect("/songs");
 		})
 		.catch((error) => {
 			console.log("API Error: ", error);
@@ -51,12 +65,28 @@ saveNewSong = (songList) => {
 				if (foundSong) {
 					//If song is found, do nothing and move onto next song
 				} else {
+					let date = new Date(song.createdOn);
+					let y = date.getFullYear();
+					let m = date.getMonth() + 1;
+					let d = addZero(date.getDate());
+					let h = addZero(date.getHours());
+					let mi = addZero(date.getMinutes());
+					let s = addZero(date.getSeconds());
+
+					//console.log(song.createdOn)
+					// let d = new Intl.DateTimeFormat('en-Us', options).format(song.createdOn);
 					const newSong = new Song({
 						id: song.id,
 						title: song.title,
 						artist: song.artist,
 						timestamp: song.timestamp,
 						createdOn: song.createdOn,
+						year: "2020",
+						month: m,
+						date: d,
+						hours: h,
+						minutes: mi,
+						seconds: s,
 					});
 					Song.create(newSong); //Create a new song but just save only the relevant fields
 				}
@@ -64,4 +94,34 @@ saveNewSong = (songList) => {
 		);
 	});
 };
+addZero = (i) => {
+	if (i < 10) {
+		return "0" + i;
+	} else return i;
+};
+
+search = () =>{
+
+
+app.get("/search", async (req, res) => {
+	let searchFor = req.params.name
+	let titleResults = await Song.find({
+		//searches all games
+		title: {
+			$regex: req.query.name, //$regex converts the name field from search box on index.ejs to a string
+			$options: "i", //case-insensitive search option
+		},
+	});
+
+	let consoleResults = await Console.find({
+		//searches all consoles
+		name: { $regex: req.query.name, $options: "i" },
+	});
+
+	res.render("search.ejs", {
+		games: gameResults,
+		consoles: consoleResults,
+	});
+});
+}
 module.exports = router;

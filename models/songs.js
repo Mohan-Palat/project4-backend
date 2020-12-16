@@ -14,7 +14,7 @@ const songSchema = new mongoose.Schema(
         minutes: {type: String},
         seconds: {type: String},
     },
-    {collection: 'songs'}
+    {collection: 'song-test2'}
 )
 
 

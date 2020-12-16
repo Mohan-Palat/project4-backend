@@ -101,12 +101,41 @@ addZero = (i) => {
 	} else return i;
 };
 
+router.get("/count/:order", async (req, res) => {
+	let order = req.params.order;
+	if (order == "d") {
+		order = -1;
+	} else {
+		order = 1;
+	}
+	Song.aggregate(
+		[
+			{ $match: {} }, 
+			{ $group: { 
+				_id: {title: "$title", artist: "$artist"},
+			count: {$sum: 1} } },
+			{$sort: {count: order, _id: 1}}
+		],
+		(error, song) => {
+			res.json(song);
+		}
+	);
+});
+
 search = () => {
 	app.get("/search", async (req, res) => {
+		console.log(req.params);
 		let searchFor = req.params.name;
 		let titleResults = await Song.find({
 			//searches all games
 			title: {
+				$regex: req.query.name, //$regex converts the name field from search box on index.ejs to a string
+				$options: "i", //case-insensitive search option
+			},
+		});
+		let artistResults = await Song.find({
+			//searches all games
+			artist: {
 				$regex: req.query.name, //$regex converts the name field from search box on index.ejs to a string
 				$options: "i", //case-insensitive search option
 			},
@@ -122,21 +151,9 @@ search = () => {
 			consoles: consoleResults,
 		});
 	});
+	res.json(titleResults, artistResults)
 };
 
-router.get("/group", async (req, res) => {
-	Song.aggregate(
-		[
-			{ $match: {} }, 
-			{ $group: { 
-				_id: {title: "$title", artist: "$artist"},
-			count: {$sum: 1} } },
-			{$sort: {count: -1, _id: 1}}
-		],
-		(error, song) => {
-			res.json(song);
-		}
-	);
-});
+
 
 module.exports = router;

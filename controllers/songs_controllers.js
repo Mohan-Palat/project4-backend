@@ -5,10 +5,10 @@ const bodyParser = require("body-parser");
 router.use(bodyParser.json());
 
 //Passes back songs in order of most recently played.
-router.get("/songs", async (req, res) => {
+router.get("/songs/:order", async (req, res) => {
 	Song.find({}, (error, allSongs) => {
 		res.json(allSongs);
-	}).sort({ createdOn: "descending" });
+	}).sort({ createdOn: req.params.order });
 });
 
 router.get("/first", async (req, res) => {
@@ -55,7 +55,7 @@ router.get("/refresh", async (req, res) => {
 		.get("https://nowplaying.bbgi.com/WMGQFM/list?limit=1000") //Calls API to retrieve song list
 		.then((response) => {
 			saveNewSong(response.data); //Saves songs that are retrieved but not in DB
-			res.redirect("/songs");
+			res.redirect("/songs/descending");
 		})
 		.catch((error) => {
 			console.log("API Error: ", error);
@@ -82,8 +82,6 @@ saveNewSong = (songList) => {
 					let mi = addZero(date.getMinutes());
 					let s = addZero(date.getSeconds());
 
-					//console.log(song.createdOn)
-					// let d = new Intl.DateTimeFormat('en-Us', options).format(song.createdOn);
 					const newSong = new Song({
 						id: song.id,
 						title: song.title,
@@ -133,16 +131,22 @@ router.get("/count/:order", async (req, res) => {
 	);
 });
 
-	router.get("/search", async (req, res) => {
-		console.log(req.query)
-		Song.find(
-			{$or: [{artist: new RegExp(req.query.term,'i')}, {title: new RegExp(req.query.term,'i')}]}, (err, allSongs) =>{
-				if(err){res.json(err)} else
-				res.json(allSongs)
-			})
-		})
-	
-
+router.get("/search", async (req, res) => {
+	console.log(req.query);
+	Song.find(
+		{
+			$or: [
+				{ artist: new RegExp(req.query.term, "i") },
+				{ title: new RegExp(req.query.term, "i") },
+			],
+		},
+		(err, allSongs) => {
+			if (err) {
+				res.json(err);
+			} else res.json(allSongs);
+		}
+	);
+});
 
 router.get("/today", async (req, res) => {
 	const now = new Date();
@@ -153,7 +157,6 @@ router.get("/today", async (req, res) => {
 });
 
 router.get("/todayCount", async (req, res) => {
-	console.log("Called")
 	const now = new Date();
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 	Song.aggregate(
@@ -173,6 +176,6 @@ router.get("/todayCount", async (req, res) => {
 	);
 });
 
-router.get("/average", async (req, res) =>{})
+router.get("/average", async (req, res) => {});
 
 module.exports = router;

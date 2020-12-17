@@ -4,12 +4,20 @@ const axios = require("axios");
 const bodyParser = require("body-parser");
 router.use(bodyParser.json());
 
+//Passes back songs in order of most recently played.
 router.get("/songs", async (req, res) => {
 	Song.find({}, (error, allSongs) => {
 		res.json(allSongs);
 	}).sort({ createdOn: "descending" });
 });
 
+router.get("/first", async (req, res) => {
+	Song.find({}, (error, allSongs) => {
+		res.json(allSongs);
+	})
+		.sort({ createdOn: -1 })
+		.limit(1);
+});
 router.get("/first", async (req, res) => {
 	Song.find({}, (error, allSongs) => {
 		res.json(allSongs);
@@ -110,11 +118,14 @@ router.get("/count/:order", async (req, res) => {
 	}
 	Song.aggregate(
 		[
-			{ $match: {} }, 
-			{ $group: { 
-				_id: {title: "$title", artist: "$artist"},
-			count: {$sum: 1} } },
-			{$sort: {count: order, _id: 1}}
+			{ $match: {} },
+			{
+				$group: {
+					_id: { title: "$title", artist: "$artist" },
+					count: { $sum: 1 },
+				},
+			},
+			{ $sort: { count: order, _id: 1 } },
 		],
 		(error, song) => {
 			res.json(song);
@@ -122,38 +133,46 @@ router.get("/count/:order", async (req, res) => {
 	);
 });
 
-search = () => {
-	app.get("/search", async (req, res) => {
-		console.log(req.params);
-		let searchFor = req.params.name;
-		let titleResults = await Song.find({
-			//searches all games
-			title: {
-				$regex: req.query.name, //$regex converts the name field from search box on index.ejs to a string
-				$options: "i", //case-insensitive search option
+	router.get("/search", async (req, res) => {
+		console.log(req.query)
+		Song.find(
+			{$or: [{artist: new RegExp(req.query.term,'i')}, {title: new RegExp(req.query.term,'i')}]}, (err, allSongs) =>{
+				if(err){res.json(err)} else
+				res.json(allSongs)
+			})
+		})
+	
+
+
+router.get("/today", async (req, res) => {
+	const now = new Date();
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	Song.find({ createdOn: { $gte: today } }, (error, allSongs) => {
+		res.json(allSongs);
+	}).sort({ createdOn: "descending" });
+});
+
+router.get("/todayCount", async (req, res) => {
+	console.log("Called")
+	const now = new Date();
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	Song.aggregate(
+		[
+			{ $match: { createdOn: { $gte: today } } },
+			{
+				$group: {
+					_id: { title: "$title", artist: "$artist" },
+					count: { $sum: 1 },
+				},
 			},
-		});
-		let artistResults = await Song.find({
-			//searches all games
-			artist: {
-				$regex: req.query.name, //$regex converts the name field from search box on index.ejs to a string
-				$options: "i", //case-insensitive search option
-			},
-		});
+			{ $sort: { count: -1, _id: 1 } },
+		],
+		(error, song) => {
+			res.json(song);
+		}
+	);
+});
 
-		let consoleResults = await Console.find({
-			//searches all consoles
-			name: { $regex: req.query.name, $options: "i" },
-		});
-
-		res.render("search.ejs", {
-			games: gameResults,
-			consoles: consoleResults,
-		});
-	});
-	res.json(titleResults, artistResults)
-};
-
-
+router.get("/average", async (req, res) =>{})
 
 module.exports = router;

@@ -27,7 +27,7 @@ db.on("open", () => {});
 
 app.use(express.urlencoded({ extended: true })); // extended: false - does not allow nested objects in query strings
 app.use(express.json()); // returns middleware that only parses JSON - may or may not need it depending on your project
-app.use(cors({origin: process.env.CLIENT_ORIGIN || `http://localhost:${reactPort}`}))
+app.use(cors())
 
 app.use("/", require("./controllers/songs_controllers.js"));
 

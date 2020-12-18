@@ -11,13 +11,7 @@ router.get("/songs/:order", async (req, res) => {
 	}).sort({ createdOn: req.params.order });
 });
 
-router.get("/first", async (req, res) => {
-	Song.find({}, (error, allSongs) => {
-		res.json(allSongs);
-	})
-		.sort({ createdOn: -1 })
-		.limit(1);
-});
+//Gets most recently added song and uses its createdOn date to populate the Last Updated field.
 router.get("/first", async (req, res) => {
 	Song.find({}, (error, allSongs) => {
 		res.json(allSongs);
@@ -26,6 +20,7 @@ router.get("/first", async (req, res) => {
 		.limit(1);
 });
 
+//Sorts the collection by artist name.
 router.get("/artist/:order", async (req, res) => {
 	let order = req.params.order;
 	if (order == "d") {
@@ -37,6 +32,8 @@ router.get("/artist/:order", async (req, res) => {
 		res.json(allSongs);
 	}).sort({ artist: order, title: "1" });
 });
+
+//Sorts the collection by song title.
 router.get("/title/:order", async (req, res) => {
 	let order = req.params.order;
 	if (order == "d") {
@@ -54,8 +51,8 @@ router.get("/refresh", async (req, res) => {
 	await axios
 		.get("https://nowplaying.bbgi.com/WMGQFM/list?limit=1000") //Calls API to retrieve song list
 		.then((response) => {
-			saveNewSong(response.data); //Saves songs that are retrieved but not in DB
-			res.redirect("/songs/descending");
+			saveNewSong(response.data); //Saves songs that are retrieved but not in Collection
+			res.redirect("/songs/descending"); //Redirects to page that shows the entire collection of documents.
 		})
 		.catch((error) => {
 			console.log("API Error: ", error);
@@ -74,7 +71,7 @@ saveNewSong = (songList) => {
 				if (foundSong) {
 					//If song is found, do nothing and move onto next song
 				} else {
-					let date = new Date(song.createdOn);
+					let date = new Date(song.createdOn);//.toLocaleString("en-US",{timeZone: "America/New_York"});
 					let y = date.getFullYear();
 					let m = date.getMonth() + 1;
 					let d = addZero(date.getDate());
@@ -82,6 +79,7 @@ saveNewSong = (songList) => {
 					let mi = addZero(date.getMinutes());
 					let s = addZero(date.getSeconds());
 
+					//Originally parsed out for rendering the last played date/time.  May refactor with better understanding of createdOn manipulation.
 					const newSong = new Song({
 						id: song.id,
 						title: song.title,
@@ -101,12 +99,14 @@ saveNewSong = (songList) => {
 		);
 	});
 };
+//Adds zero for display purposes
 addZero = (i) => {
 	if (i < 10) {
 		return "0" + i;
 	} else return i;
 };
 
+//Used for song count - groups by title and artist.
 router.get("/count/:order", async (req, res) => {
 	let order = req.params.order;
 	if (order == "d") {
@@ -131,23 +131,27 @@ router.get("/count/:order", async (req, res) => {
 	);
 });
 
+//Search route
 router.get("/search", async (req, res) => {
-	console.log(req.query);
+	
 	Song.find(
 		{
+			//Enables search on either artist OR title
 			$or: [
 				{ artist: new RegExp(req.query.term, "i") },
 				{ title: new RegExp(req.query.term, "i") },
 			],
 		},
+		
 		(err, allSongs) => {
 			if (err) {
 				res.json(err);
 			} else res.json(allSongs);
 		}
-	);
+	).sort({ createdOn: "descending" });
 });
 
+//Gets list of songs played today since 12:00a
 router.get("/today", async (req, res) => {
 	const now = new Date();
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -156,6 +160,7 @@ router.get("/today", async (req, res) => {
 	}).sort({ createdOn: "descending" });
 });
 
+//Gets count of songs played today since 12:00a
 router.get("/todayCount", async (req, res) => {
 	const now = new Date();
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -176,6 +181,7 @@ router.get("/todayCount", async (req, res) => {
 	);
 });
 
+//Not currently used; will be implemented in future for additional statistics.
 router.get("/average", async (req, res) => {});
 
 module.exports = router;

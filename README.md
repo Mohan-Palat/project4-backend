@@ -54,7 +54,7 @@ The 1000 limit is the maximum number of entries the API will return; if the numb
 
 # Wireframes
 
-<img src="/planning/wireframe.png" />
+<img src="/wireframe.png" />
 Wireframe 
 
 # Acknowledgements
